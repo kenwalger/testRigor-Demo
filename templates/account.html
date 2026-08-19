@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block title %}Account Settings - Golden Tire Customer Portal{% endblock %}
+
+{% block content %}
+<section class="card">
+    <h1>Account Settings</h1>
+
+    <dl class="account-details">
+        <dt>Name</dt>
+        <dd>{{ user.name }}</dd>
+
+        <dt>Email</dt>
+        <dd>{{ user.email }}</dd>
+    </dl>
+</section>
+{% endblock %}

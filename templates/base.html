@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Golden Tire Customer Portal{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    {% block header %}
+    {% if session.user_id %}
+    <header class="site-header">
+        <div class="brand">
+            <span class="brand-mark" aria-hidden="true"></span>
+            <span class="brand-text">
+                <span class="brand-name">Golden Tire Company</span>
+                <span class="brand-tagline">Keeping You Rolling Since 1957</span>
+            </span>
+        </div>
+        <nav class="site-nav" aria-label="Primary">
+            <a href="{{ url_for('dashboard') }}">Dashboard</a>
+            <a href="{{ url_for('account') }}">Account Settings</a>
+            <a href="{{ url_for('logout') }}">Logout</a>
+        </nav>
+    </header>
+    {% endif %}
+    {% endblock %}
+
+    <main class="site-main">
+        {% block content %}{% endblock %}
+    </main>
+</body>
+</html>

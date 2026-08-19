@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}Sign In - Golden Tire Customer Portal{% endblock %}
+
+{% block content %}
+<section class="login-panel">
+    <div class="login-brand">
+        <span class="brand-mark brand-mark-large" aria-hidden="true"></span>
+        <h1 class="login-company">Golden Tire Company</h1>
+        <p class="login-tagline">Keeping You Rolling Since 1957</p>
+        <p class="login-portal">Customer Portal</p>
+    </div>
+
+    <form class="login-form" method="post" action="{{ url_for('login') }}" novalidate>
+        {% if error %}
+        <p class="form-error" role="alert">{{ error }}</p>
+        {% endif %}
+
+        <div class="form-field">
+            <label for="email">Email</label>
+            <input type="email" id="email" name="email" autocomplete="username" required>
+        </div>
+
+        <div class="form-field">
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" autocomplete="current-password" required>
+        </div>
+
+        <button type="submit" class="button-primary">Sign In</button>
+    </form>
+</section>
+{% endblock %}
