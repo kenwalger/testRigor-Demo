@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block title %}Password Updated - Golden Tire Customer Portal{% endblock %}
+
+{% block content %}
+<section class="login-panel">
+    <div class="login-brand">
+        <span class="brand-mark brand-mark-large" aria-hidden="true"></span>
+        <h1 class="login-company">Golden Tire Company</h1>
+        <p class="login-tagline">Keeping You Rolling Since 1957</p>
+    </div>
+
+    <p class="form-success" role="status">Your password has been updated</p>
+
+    <p class="form-links">
+        <a href="{{ url_for('login') }}">Sign In</a>
+    </p>
+</section>
+{% endblock %}

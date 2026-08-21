@@ -22,7 +22,7 @@ def _require(name: str) -> str:
     return value
 
 
-def send_email(to: str, subject: str, body: str) -> None:
+def send_email(to: str, subject: str, body: str, html: str | None = None) -> None:
     host = _require("SMTP_HOST")
     port_raw = _require("SMTP_PORT")
     username = _require("SMTP_USERNAME")
@@ -41,6 +41,8 @@ def send_email(to: str, subject: str, body: str) -> None:
     message["To"] = to
     message["Subject"] = subject
     message.set_content(body)
+    if html is not None:
+        message.add_alternative(html, subtype="html")
 
     # This function is intended to be called from inside a web request in a later
     # demonstration. Without a timeout, an unreachable or slow SMTP server would

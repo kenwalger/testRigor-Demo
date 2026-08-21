@@ -25,6 +25,18 @@ def main() -> None:
             """
         )
         conn.execute(
+            """
+            CREATE TABLE password_reset_tokens (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                token TEXT NOT NULL UNIQUE,
+                expires_at TEXT NOT NULL,
+                used_at TEXT,
+                FOREIGN KEY (user_id) REFERENCES users (id)
+            )
+            """
+        )
+        conn.execute(
             "INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)",
             (SEED_NAME, SEED_EMAIL, generate_password_hash(SEED_PASSWORD)),
         )

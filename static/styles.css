@@ -250,3 +250,37 @@ body {
     font-weight: 600;
     margin: 0 0 18px;
 }
+
+.form-note {
+    color: var(--color-ink-soft);
+    font-size: 15px;
+    margin: 0 0 18px;
+}
+
+.form-links {
+    margin: 18px 0 0;
+    text-align: center;
+    font-size: 15px;
+}
+
+.form-links a {
+    color: var(--color-gold-dark);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.form-links a:hover,
+.form-links a:focus {
+    text-decoration: underline;
+}
+
+.form-success {
+    background-color: #fbf3df;
+    color: var(--color-ink);
+    border: 1px solid var(--color-gold-dark);
+    padding: 12px 14px;
+    border-radius: var(--radius);
+    font-weight: 700;
+    text-align: center;
+    margin: 0;
+}
