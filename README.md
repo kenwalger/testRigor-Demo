@@ -1,258 +1,175 @@
-# Golden Tire Customer Portal
+# Spec-First Verification for AI-Generated Code
 
-A small Flask demonstration application for **Golden Tire Company**. *Keeping You Rolling Since 1957.*
+A working demonstration of a development loop where an end-to-end behavioral specification is written **before** any implementation exists, a coding agent implements against it, and independent verification decides whether the agent succeeded.
 
-This is a deliberately limited baseline used for a screen-recorded demonstration of AI-assisted code generation and end-to-end behavioral testing. It is not a production system.
-
-The application ships **without** a password reset flow. That absence is intentional: the reset feature is generated live during the demonstration, and an end-to-end behavioral test written beforehand decides whether the generated implementation is correct.
-
-## Requirements
-
-- Python 3.10 or newer
-- An ngrok account and the ngrok CLI
-- An SMTP account for outbound mail
-- An account with the end-to-end testing service
-
-## Setup
-
-```bash
-# 1. Create a virtual environment
-python -m venv .venv
-
-# 2. Activate it
-# Windows (PowerShell)
-.venv\Scripts\Activate.ps1
-# macOS / Linux
-source .venv/bin/activate
-
-# 3. Install dependencies
-pip install -r requirements.txt
-
-# 4. Copy the environment template and fill in SMTP values
-cp .env.example .env
-# then edit .env
-
-# 5. Start the application
-python app.py
-```
-
-The application runs at:
-
-http://localhost:5000
-
-## Demo credentials
-
-- **Email:** `goldentire.demo@testrigor-mail.com`
-- **Password:** `oldpassword`
-
-These are intentionally synthetic credentials for a local demonstration application. They are not, and should not be treated as, real user credentials.
-
-The seed address is deliberately a real, deliverable address on the testing service's inbox domain rather than a reserved example domain. Mail must actually reach it. Do not change it to `example.com`, `.test`, or any other non-routable address.
-
-## Email configuration
-
-The testing service supplies the destination inbox only. Outbound mail needs a separate SMTP provider.
-
-### Gmail
-
-Gmail no longer accepts account passwords over SMTP. An app-specific password is required, and app passwords are only available once 2-Step Verification is enabled on the account.
+The interesting part is not the application. It is the loop:
 
 ```
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USERNAME=your.address@gmail.com
-SMTP_PASSWORD=<16 characters, spaces stripped>
-SMTP_FROM=your.address@gmail.com
+specification  →  generation  →  verification  →  failure as context  →  repair  →  pass
 ```
 
-Three things that commonly go wrong:
+Built with Flask, [Claude Code](https://claude.com/claude-code), and [testRigor](https://testrigor.com).
 
-- Using the account password instead of an app password. This fails with a `534 5.7.9 Application-specific password required` error.
-- Leaving the spaces in the app password. Google displays it in four groups of four for readability. Strip them.
-- Setting `SMTP_FROM` to an address other than the authenticated account. Gmail rejects the send.
-
-### Alternatives
-
-Brevo, Mailgun, and Resend all offer free tiers with SMTP credentials and no 2FA requirement. Worth using instead of a personal Gmail account if this repository is ever published.
-
-### FLASK_SECRET_KEY
-
-Leave this unset. The application falls back to a fixed development key, which is what the demonstration needs. See "Between takes" below.
-
-## Verifying email delivery
-
-```bash
-python verify_email.py
-```
-
-This sends a single test message using the SMTP settings in `.env`. The mail transport (`mailer.send_email`) is intentionally **not** connected to any application route, view, or template in the baseline. It exists so mail delivery can be confirmed before the demonstration begins. The generated password reset feature wires it up.
-
-**Note on how the email check behaves.** The testing service's email check is forward-looking: it starts watching the inbox when the step begins and waits for mail to arrive during its wait window. Messages that arrived before the step started do not match. Two consequences:
-
-- Stale mail in the inbox will not cause false passes, so the inbox does not need clearing between runs.
-- A standalone email check with nothing to trigger a send will always fail. The real test works because it clicks "Send reset link" a few steps earlier.
-- That wait window is roughly a minute of real time in every full run. Budget for it.
-
-## Resetting the database
-
-```bash
-python reset_db.py
-```
-
-Returns the application to its original seeded state (one demo user, password `oldpassword`). Safe to run repeatedly.
-
-The database file is gitignored, so `git checkout` will not touch it. Resetting code and resetting data are two separate steps.
+- **Article:** [The Verification Bottleneck in AI-Generated Software](ADD-LINK)
+- **Video:** [Watch the loop run end to end](https://youtu.be/QCAUyFKlhhQ)
 
 ---
 
-# Recording the demonstration
+## What happened
 
-## Why a public tunnel is needed
+The application ships without a password reset flow. That absence is deliberate.
 
-The end-to-end testing service runs tests from its own cloud infrastructure against a URL it can reach. An application running only on `localhost` is not reachable from that infrastructure.
+A behavioral specification for password reset was written first, in plain English, including a requirement the feature request never mentioned: **a reset link must work exactly once.**
 
-A tunnel exposes the local Flask development server at a public HTTPS URL. This keeps the fast local edit-and-reload cycle intact: code changes still trigger the Flask reloader instantly, without redeploying anything.
+Then the loop ran three times.
 
-## Installing and running ngrok
+| Run | Result | Why |
+|---|---|---|
+| 1 | Red | The feature did not exist yet. Failed on the "Forgot password" step. |
+| 2 | Red | The agent built the feature, but the reset link still worked after being used. The token was never invalidated. |
+| 3 | Green | The failure text went back to the agent as context. It fixed the token handling. |
 
-1. **Install ngrok.**
+About eleven minutes of wall clock, most of it unattended.
 
-   Windows with Chocolatey:
+The bug in run 2 is the point. Every path a person would click through by hand worked perfectly. A demo would not have caught it. An agent writing its own tests would very likely have tested the happy path it already understood, and passed.
 
-   ```powershell
-   choco install ngrok
-   ```
+The single-use check existed only because a specification written beforehand asked a question the feature request never raised.
 
-   macOS with Homebrew:
+---
 
-   ```bash
-   brew install --cask ngrok
-   ```
+## The specification
 
-   Otherwise download the binary from https://ngrok.com/download, unzip it, and place it on the `PATH`.
+This is the whole test, in the form it actually runs:
 
-   If ngrok was installed through a package manager, upgrade it through that package manager. Running `ngrok update` against a package-managed binary fails with an access-denied error and desynchronizes the package manager's records.
+```
+open url "https://YOUR-DOMAIN.ngrok.app/login"
+click "Forgot password"
+enter "goldentire.demo@testrigor-mail.com" into "Email"
+click "Send reset link"
+check that one or more emails to "goldentire.demo@testrigor-mail.com" and "Reset your Golden Tire password" in subject were delivered
+click "Reset your password"
+grab url and save it as "resetLink"
+enter "NewPass2026" into "New password"
+enter "NewPass2026" into "Confirm new password"
+click "Update password"
+check that page contains "Your password has been updated"
+open url "https://YOUR-DOMAIN.ngrok.app/login"
+enter "goldentire.demo@testrigor-mail.com" into "Email"
+enter "NewPass2026" into "Password"
+click "Sign In"
+check that page contains "Welcome, Demo User"
+click "Logout"
+open url from string with parameters "${resetLink}"
+check that page contains "This password reset link has already been used"
+```
 
-2. **Add your authtoken.** Once per machine:
+No selectors, no DOM nodes, no page object model. The last two steps are the ones that caught the bug.
 
-   ```bash
-   ngrok config add-authtoken <your-authtoken>
-   ```
+The prompts given to the coding agent are in [`prompts/`](prompts/): the feature request written the way a product manager would file a ticket, and the repair prompt that carried the failure back.
 
-   Check existing configuration with `ngrok config check`.
+Note what the feature request does **not** say: anything about how reset tokens should behave. That omission is what makes the run 2 failure real rather than staged.
 
-3. **Start the tunnel** against port 5000, with the Flask app already running:
+---
 
-   ```bash
-   ngrok http 5000
-   ```
+## The application
 
-4. **Read the public forwarding URL** from the `Forwarding` line in the ngrok output.
+Golden Tire Customer Portal, a deliberately small Flask app: login, dashboard, account settings. Nothing else.
 
-5. **Confirm the tunnel** by opening that HTTPS URL in a browser. The Golden Tire login page should load.
+It was itself generated by a coding agent, from [`prompts/baseline_app_prompt.md`](prompts/), which is either reassuring or alarming depending on your priors. That is rather the point.
 
-> **Strongly recommended: use a reserved static domain.**
->
-> ```bash
-> ngrok http --url your-reserved-domain.ngrok.app 5000
-> ```
->
-> Older ngrok versions spell this flag `--domain`. Run `ngrok http --help` to confirm which your version uses.
->
-> Without a reserved domain, ngrok issues a new random subdomain on every restart, and the test suite URL has to be updated and re-whitelisted each time. Across a rehearsal session and several takes this becomes the single most tedious part of the setup.
+```
+app.py            routes and session handling
+config.py         seed constants and database path
+mailer.py         SMTP transport, deliberately unwired in the baseline
+reset_db.py       return to seeded state, safe to run repeatedly
+verify_email.py   confirm mail delivery before you start
+```
 
-## One-time setup before the first rehearsal
+---
 
-1. Create the baseline tag on a clean working tree:
+## Running it yourself
 
-   ```bash
-   git tag demo-baseline
-   ```
+### Requirements
 
-   Everything after this point is generated live and thrown away between runs. The tag is what makes each run repeatable.
+- Python 3.10+
+- An SMTP account for outbound mail
+- [ngrok](https://ngrok.com), since a cloud test runner needs a public URL to reach your local app
+- A testRigor account
 
-2. Create the test suite in the testing service. Set **AI test case generation to 0**. Auto-generated cases would contradict the premise that the specification was written by hand, first.
-
-3. Set the suite URL to the ngrok forwarding URL, bare origin with no path. Whitelist the domain if required.
-
-4. Set the suite login credentials to the seeded email and `oldpassword`.
-
-5. Create the single password reset test case. Do not use the built-in `login` rule or `stored value "password"` anywhere inside it. The seeded password changes during the run, so those stored values go stale after the first pass.
-
-6. Confirm the tunnel is reachable from the service with a two-step throwaway test: open the suite URL, check the page contains "Sign In". Delete it once it passes.
-
-## Resetting to a clean state
-
-Run this before every rehearsal pass and before every take. Not after: starting clean is what matters, and anything done after a reset leaves the next run in an unknown state.
+### Setup
 
 ```bash
-# 1. Discard generated code and return to the baseline
+python -m venv .venv
+source .venv/bin/activate          # Windows: .venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+cp .env.example .env               # then fill in SMTP values
+python app.py                      # runs at http://localhost:5000
+```
+
+Seeded account: `goldentire.demo@testrigor-mail.com` / `oldpassword`. Synthetic credentials for a local demo, not real ones.
+
+The seed address is deliberately a deliverable address on testRigor's inbox domain, not a reserved example domain. Mail has to actually reach it, so do not swap it for `example.com` or `.test`.
+
+Gmail note: SMTP requires an app-specific password, which requires 2-Step Verification on the account. Strip the spaces Google displays. `SMTP_FROM` must match the authenticated account or the send is rejected.
+
+### Expose it
+
+```bash
+ngrok http 5000
+```
+
+Use a reserved static domain if you have one (`ngrok http --url your-domain.ngrok.app 5000`). Without it the subdomain changes on every restart, and you will be updating that URL in three places each time.
+
+### Set up the suite
+
+1. New testRigor suite, **AI test case generation set to 0.** Auto-generated cases would defeat the premise.
+2. Suite URL: your ngrok origin, no path.
+3. Suite credentials: the seeded email and `oldpassword`.
+4. Paste in the specification above, with your own URL.
+5. Smoke test the tunnel first: `open url` your suite URL, then `check that page contains "Sign In"`. Delete it once it passes.
+
+### Run the loop
+
+```bash
 git checkout demo-baseline
-
-# 2. Reset the database
 python reset_db.py
-
-# 3. Restart the application
 python app.py
 ```
 
-Then clear cookies for the tunnel domain, or open a fresh private browser window. See "Between takes" below for why.
+Then: run the test (red), give the agent `feature_request_prompt.md`, run again (red on the reused link), paste the failure with `repair_prompt.md`, run again (green).
 
-The ngrok tunnel does not need restarting. Leave it running for the whole session.
+Do not click through the reset flow by hand between runs. It consumes the token and produces a confusing failure at the wrong step. Letting the test do the verifying is the argument.
 
-## The demonstration loop
+---
 
-Three test runs, not two. The middle one is the point of the demonstration.
+## Notes from actually doing this
 
-### Run 1: red against the baseline
+Things that cost me time, in case they save you some.
 
-Run the test case against the untouched application.
+**testRigor's email check is forward-looking.** It starts watching the inbox when the step begins and waits for mail during its window. Messages that arrived earlier do not match. So stale mail never causes false passes and the inbox needs no clearing, but a standalone email check with nothing triggering a send will always fail. Budget about a minute of real time for that wait in every run.
 
-It fails almost immediately, on the "Forgot password" step, because the feature does not exist. This establishes that the specification is real and predates the implementation.
+**Copy drift breaks steps, and that is the spec's problem, not the tool's.** My spec said `Forgot password`; the agent rendered `Forgot password?`. The right fix is to pin the copy in the feature request, not to edit the test to match whatever got built. Editing the spec to fit the implementation inverts the entire argument.
 
-### Generate the feature
+**Specifications have gaps too.** Mine assumed the app would land on a login form after a successful reset. It did not, and four steps cascaded into four errors from one cause. Read the first failing step, never the error list.
 
-Give the coding agent `feature_request_prompt.md`.
+**Reset link host.** The generated feature must build the emailed URL from the incoming request host. A hardcoded `localhost` link is unopenable by a cloud test runner, and it is the most likely boring failure.
 
-The prompt is written the way a product manager would file a ticket. It names the pages, fields, and user-facing copy, and says nothing about how reset tokens should behave. That omission is deliberate.
+**The Flask secret key fallback is fixed on purpose.** Randomizing it would log you out every time the reloader picks up a code change. The tradeoff is that a session cookie survives `reset_db.py`, so clear cookies or use a private window between runs.
 
-When it finishes, reload the login page. A "Forgot password" link should now be present.
+**The agent does not fail the same way twice.** Across generations I saw the reused link still work, and I saw it rejected with a bare 400 instead of the specified message. Both are real gaps between spec and implementation. Neither was the one I planned for.
 
-**Do not click through the reset flow by hand.** Doing so consumes the token and leaves the test running against an already-used link, which produces a confusing failure at the wrong step. Verification is the test's job. That is the argument the demonstration is making.
+---
 
-### Run 2: red on the reused link
+## Why this repo exists
 
-Run the test case again.
+It started as a work sample and turned into something I found more interesting than the assignment.
 
-The expected failure is the final step: after the reset link has been used to set a new password, opening the same link a second time still works. The token was never invalidated.
+As code generation gets cheaper, verification becomes the bottleneck. And if implementations are becoming disposable, the durable artifact is increasingly the specification rather than the code. That is the argument the [article](ADD-LINK) makes at length.
 
-This is the failure the whole demonstration is built on. Confirm during rehearsal that it reproduces reliably.
+This repo is the evidence.
 
-### Repair
+---
 
-Copy the failing step text out of the test results. Paste it into the agent along with `repair_prompt.md`.
+## License
 
-### Run 3: green
-
-Run the test case once more. It should pass end to end.
-
-## What to confirm during rehearsal
-
-Run the full loop at least twice before recording, and confirm all four:
-
-1. **The single-use failure reproduces.** If the agent gets it right on the first pass, find a different genuine gap in the specification rather than manufacturing one.
-2. **The reset link points at the tunnel.** Check that the email contains the ngrok host and an `https` scheme, not `localhost` and not plain `http`. This is the most likely boring failure.
-3. **Wall-clock time for a full pass.** The email wait alone is around a minute. Knowing the total decides whether the waits get narrated or cut.
-4. **Nothing in the test relies on the old password.** After any full pass the seeded password is no longer `oldpassword` until the database is reset.
-
-## Between takes
-
-Resetting the database recreates the seeded user with the same row id. Because the Flask secret key is intentionally fixed, an existing session cookie remains valid and still resolves to that user. So after a reset the operator's browser can still be logged in, and visiting `/login` redirects straight to `/dashboard`.
-
-Remedy: clear cookies for the tunnel domain, or use a fresh private window for each take. This only affects the operator's own browser. The testing service starts each run in a new browser session and carries no state between runs.
-
-Do not "fix" this by randomizing the Flask secret key. The fixed key is deliberate. Randomizing it would log the operator out every time the Flask reloader picks up a code change during recording, which is considerably worse than clearing a cookie.
-
-## Known timing
-
-`mailer.send_email` performs a synchronous SMTP send with a 10 second timeout. Once the generated feature calls it from a request, that request takes a few seconds to complete while the mail server is contacted. This is expected, not a fault in the application.
+MIT. Take any of it.
