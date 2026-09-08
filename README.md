@@ -10,7 +10,7 @@ specification  →  generation  →  verification  →  failure as context  → 
 
 Built with Flask, [Claude Code](https://claude.com/claude-code), and [testRigor](https://testrigor.com).
 
-- **Article:** [The Verification Bottleneck in AI-Generated Software](ADD-LINK)
+- **Article:** [The Verification Bottleneck in AI-Generated Software](ADD-[LINK](https://www.kenwalger.com/blog/ai/verification-bottleneck-ai-generated-software/))
 - **Video:** [Watch the loop run end to end](https://youtu.be/QCAUyFKlhhQ)
 
 ---
@@ -164,7 +164,7 @@ Things that cost me time, in case they save you some.
 
 It started as a work sample and turned into something I found more interesting than the assignment.
 
-As code generation gets cheaper, verification becomes the bottleneck. And if implementations are becoming disposable, the durable artifact is increasingly the specification rather than the code. That is the argument the [article](ADD-LINK) makes at length.
+As code generation gets cheaper, verification becomes the bottleneck. And if implementations are becoming disposable, the durable artifact is increasingly the specification rather than the code. That is the argument the [article](https://www.kenwalger.com/blog/ai/verification-bottleneck-ai-generated-software/) makes at length.
 
 This repo is the evidence.
 
