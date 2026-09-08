@@ -10,7 +10,7 @@ specification  →  generation  →  verification  →  failure as context  → 
 
 Built with Flask, [Claude Code](https://claude.com/claude-code), and [testRigor](https://testrigor.com).
 
-- **Article:** [The Verification Bottleneck in AI-Generated Software](ADD-[LINK](https://www.kenwalger.com/blog/ai/verification-bottleneck-ai-generated-software/))
+- **Article:** [The Verification Bottleneck in AI-Generated Software](https://www.kenwalger.com/blog/ai/verification-bottleneck-ai-generated-software/)
 - **Video:** [Watch the loop run end to end](https://youtu.be/QCAUyFKlhhQ)
 
 ---
